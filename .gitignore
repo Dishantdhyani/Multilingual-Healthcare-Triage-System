@@ -1,0 +1,21 @@
+# Environments
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log
+
+# Models and Checkpoints (too large for standard Git)
+models/symptom_model/*.safetensors
+models/symptom_model/*.bin
+models/symptom_model/*.joblib
+models/checkpoints/
+
+# Other
+.DS_Store

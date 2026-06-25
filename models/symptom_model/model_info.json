@@ -1,0 +1,10 @@
+{
+  "model_type": "tfidf_svm",
+  "test_accuracy": 0.9777777777777777,
+  "best_params": {
+    "clf__estimator__C": "1.0",
+    "tfidf__max_features": "5000",
+    "tfidf__ngram_range": "(1, 1)"
+  },
+  "num_classes": 24
+}
