@@ -20,12 +20,13 @@ export const MindEaseView: React.FC = () => {
     return saved ? JSON.parse(saved) : [
       {
         sender: 'bot',
-        text: "Hello, I am your MindEase companion. How are you feeling today? If you are feeling stressed, anxious, having trouble sleeping, or just want a safe space to reflect, I am here for you.",
+        text: "Hello, I am your MindEase companion. How are you feeling today? If you are feeling stressed, anxious, having trouble sleeping, or just want a safe space to reflect, I am here to listen and support you.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ];
   });
   const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   // Community State
@@ -53,7 +54,7 @@ export const MindEaseView: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('mindease_chats', JSON.stringify(chatMessages));
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+  }, [chatMessages, isChatLoading]);
 
   useEffect(() => {
     localStorage.setItem('mindease_posts', JSON.stringify(communityPosts));
@@ -103,39 +104,60 @@ export const MindEaseView: React.FC = () => {
     setJournals(journals.filter(j => j.id !== id));
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || isChatLoading) return;
 
+    const currentText = chatInput;
     const userMsg: ChatMessage = {
       sender: 'user',
-      text: chatInput,
+      text: currentText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     setChatMessages((prev) => [...prev, userMsg]);
-    const currentText = chatInput.toLowerCase();
     setChatInput('');
+    setIsChatLoading(true);
 
-    setTimeout(() => {
-      let replyText = "I hear you, and I appreciate you sharing that with me. Remember to take things one step at a time. How can I best support you right now?";
-      if (currentText.includes('stress') || currentText.includes('overwhelmed') || currentText.includes('anxious') || currentText.includes('anxiety')) {
-        replyText = "It sounds like you are carrying a lot of weight right now. When anxiety or stress peaks, taking slow, rhythmic breaths can calm your nervous system. Would you like to try our 4-4-4-4 Box Breathing studio?";
-      } else if (currentText.includes('sad') || currentText.includes('lonely') || currentText.includes('depressed')) {
-        replyText = "I am so sorry you are feeling this way. Please remember that your feelings are valid, and you don't have to go through this alone. Try writing down your thoughts in the Private Journal, or reach out to someone you trust.";
-      } else if (currentText.includes('sleep') || currentText.includes('tired') || currentText.includes('insomnia')) {
-        replyText = "Quality sleep is vital for emotional well-being. Try putting away screens 30 minutes before bed, keeping your room cool, and practicing light rhythmic breathing before closing your eyes.";
-      } else if (currentText.includes('happy') || currentText.includes('good') || currentText.includes('great')) {
-        replyText = "That is wonderful to hear! Celebrating positive moments, big or small, helps build resilience. Consider logging this feeling in your mood tracker!";
+    try {
+      const response = await fetch('/mindease/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: currentText,
+          history: chatMessages.slice(-10)
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP status ${response.status}`);
       }
 
+      const data = await response.json();
       const botMsg: ChatMessage = {
         sender: 'bot',
-        text: replyText,
+        text: data.reply || "I am right here with you and listening actively.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setChatMessages((prev) => [...prev, botMsg]);
-    }, 800);
+    } catch (err: any) {
+      // Fallback local response if server is disconnected or offline
+      let replyText = "I encountered a slight connection issue reaching the Groq neural service. Remember to take things one step at a time. How can I best support you right now?";
+      const lower = currentText.toLowerCase();
+      if (lower.includes('stress') || lower.includes('overwhelmed') || lower.includes('anxious') || lower.includes('anxiety')) {
+        replyText = "It sounds like you are carrying a lot of weight right now. When anxiety or stress peaks, taking slow, rhythmic breaths can calm your nervous system. Would you like to try our 4-4-4-4 Box Breathing studio?";
+      } else if (lower.includes('sad') || lower.includes('lonely') || lower.includes('depressed')) {
+        replyText = "I am so sorry you are feeling this way. Please remember that your feelings are valid, and you don't have to go through this alone. Try writing down your thoughts in the Private Journal, or reach out to someone you trust.";
+      }
+      const botMsg: ChatMessage = {
+        sender: 'bot',
+        text: `${replyText} *(Offline fallback: ${err.message})*`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setChatMessages((prev) => [...prev, botMsg]);
+    } finally {
+      setIsChatLoading(false);
+    }
   };
 
   const handleAddPost = (e: React.FormEvent) => {
@@ -251,6 +273,14 @@ export const MindEaseView: React.FC = () => {
                   <span className="text-[10px] text-slate-400 mt-1 px-2">{msg.timestamp}</span>
                 </div>
               ))}
+              {isChatLoading && (
+                <div className="flex flex-col items-start animate-fade-in">
+                  <div className="p-4 rounded-3xl rounded-bl-none bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-sm flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping"></span>
+                    <span>Joy is listening and typing...</span>
+                  </div>
+                </div>
+              )}
               <div ref={chatEndRef} />
             </div>
 
@@ -261,7 +291,8 @@ export const MindEaseView: React.FC = () => {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Share your thoughts, worries, or ask for a calming exercise..."
-                className="flex-1 p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans"
+                disabled={isChatLoading}
+                className="flex-1 p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans disabled:opacity-60"
               />
               <VoiceInput
                 size="sm"
@@ -270,10 +301,10 @@ export const MindEaseView: React.FC = () => {
               />
               <button
                 type="submit"
-                disabled={!chatInput.trim()}
-                className="px-6 py-3.5 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md shadow-indigo-500/20 disabled:opacity-50 transition-all"
+                disabled={!chatInput.trim() || isChatLoading}
+                className="px-6 py-3.5 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md shadow-indigo-500/20 disabled:opacity-50 transition-all flex items-center gap-1.5"
               >
-                Send ➔
+                <span>{isChatLoading ? 'Thinking...' : 'Send ➔'}</span>
               </button>
             </form>
           </div>

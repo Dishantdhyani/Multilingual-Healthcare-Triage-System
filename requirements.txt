@@ -10,3 +10,5 @@ scikit-learn
 joblib
 python-dotenv
 httpx
+chromadb
+sentence-transformers

@@ -173,23 +173,28 @@ Why does quadratic consensus voting over Vector DB neighbors outperform simple 1
 
 ## 🛠️ Step-by-Step Verification & Execution
 
-To experience the platform in full standalone mode:
+To experience the full enterprise platform with both the high-speed **FastAPI & RAG Vector DB Backend** and the **Vite React + TypeScript Dashboard**:
 
+### 1. Launch the FastAPI Backend API Server (`:8000`)
 ```bash
-# 1. Activate Virtual Environment
-.\venv\Scripts\activate
-
-# 2. Launch the Standalone Cyberpunk Command HUD
-python -m streamlit run frontend/app.py --server.port 8501
+# Activate Virtual Environment & start Uvicorn with Groq AI loaded via .env
+.\venv\Scripts\python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-1. Open your browser to [http://localhost:8501](http://localhost:8501).
-2. Observe the glowing **Telemetry HUD** indicating `1,201 Indexed Cases` and `100% Client-Side Execution`.
-3. Click the **🇮🇳 Hindi Case** preset button (`तेज़ बुखार, सिरदर्द, बदन दर्द`).
-4. Click **✨ ANALYZE WITH VECTOR DB RAG ENGINE**.
-5. Watch the dashboard dynamically render the **Primary Consensus Diagnosis**, highlight the **Hindi XAI keywords**, display the **High Severity Emergency Alert**, and present the exact **Vector DB RAG historical quotes**!
+### 2. Launch the Modern React Command HUD (`:3000`)
+```bash
+cd react-frontend
+npm install
+npm run dev
+```
+
+1. Open your browser to [http://localhost:3000](http://localhost:3000).
+2. Observe the glowing **Telemetry HUD** indicating `1,230 Indexed Cases` and `High-Speed RAG Engine`.
+3. Test **AI Symptom Triage** by entering symptoms across English, Hindi, or Hinglish (`tezz bukhar aur sar me dard`).
+4. Click **✨ ANALYZE WITH VECTOR DB RAG ENGINE** to see XAI pill highlights, top nearest neighbor cases, and specialty referrals.
+5. Switch to **MindEase Companion** to chat directly with `Joy` (`llama-3.3-70b-versatile`), track daily mood analytics, or practice 4-4-4-4 box breathing!
 
 ---
 
 ## 🏆 Project Completion Summary
-The **Multilingual Healthcare Triage System** stands as a complete, enterprise-ready demonstration of cutting-edge AI healthcare engineering. By successfully bridging multilingual NLP, explainable artificial intelligence, standalone zero-latency client execution, and case-based vector similarity retrieval, the platform delivers verifiable, transparent, and lifesaving diagnostic triage assistance.
+The **Multilingual Healthcare Triage System & MindEase Wellness Suite** stands as a complete, enterprise-ready demonstration of cutting-edge AI healthcare and mental wellness engineering. By bridging multilingual NLP, explainable artificial intelligence, RAG vector similarity retrieval, and neural conversational AI (`Groq Llama 3.3`), the platform delivers verifiable, transparent, and empathetic diagnostic triage assistance.

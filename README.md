@@ -1,45 +1,48 @@
 # 🏥 Multilingual Healthcare Triage System & Vector DB (RAG) Platform
 
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![React](https://img.shields.io/badge/React_19_+_TypeScript-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.3+-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
+[![Groq AI](https://img.shields.io/badge/Groq_AI-Llama_3.3_70B-F55036?style=for-the-badge)](https://groq.com)
 [![Vector DB](https://img.shields.io/badge/Vector_DB-RAG_k--NN-00C6FF?style=for-the-badge)](https://en.wikipedia.org/wiki/Vector_database)
-[![AI Triage](https://img.shields.io/badge/AI_Triage-HIPAA_Ready-10B981?style=for-the-badge)](https://en.wikipedia.org/wiki/Triage)
 
-An enterprise-grade, AI-powered multilingual healthcare triage system and diagnostic command center. Designed to analyze patient symptom descriptions across **English**, **Hindi**, and **Hinglish** in real time, perform **Vector Database Semantic Retrieval (RAG)** against verified historical clinical cases, evaluate acute severity tiers, and recommend specialized medical actions with **zero network latency (100% client-side execution)**.
+An enterprise-grade, AI-powered multilingual healthcare triage system, diagnostic command center, and mental wellness suite. Designed to analyze patient symptom descriptions across **English**, **Hindi**, and **Hinglish** in real time, perform **Vector Database Semantic Retrieval (RAG)** against verified historical clinical cases (`1,230` indexed records), evaluate acute severity tiers, and provide live emotional support through our **MindEase Companion (`Joy`)** powered by **Groq Llama 3.3 70B**.
 
 ---
 
 ## ✨ Key Architectural Innovations & Features
 
-### 1. ⚡ Zero-Latency Standalone Client-Side Execution
-* **No Server Dependencies:** The complete machine learning inference engine and Vector Database are embedded directly into the Streamlit frontend runtime via Python in-memory data structures and `@st.cache_resource`.
-* **Instantaneous Triage:** Eliminates network round-trip delays, API bottlenecks, and external server sockets. Diagnostic evaluation executes in less than **5 milliseconds**.
+### 1. ⚡ High-Speed FastAPI & RAG Vector DB Backend
+* **In-Memory Vector DB:** The complete machine learning inference engine (`SymptomVectorDB`) runs high-dimensional n-gram TF-IDF vector space embedding retrieval (`cosine_similarity`) across `1,230` clinical cases in less than **5 milliseconds**.
+* **Automated Proxying:** Seamless communication between the modern React UI (`http://localhost:3000`) and the FastAPI backend (`http://127.0.0.1:8000`).
 
-### 2. 📚 Vector Database & RAG (Retrieval-Augmented Generation)
-* **High-Dimensional n-gram Indexing:** Built from the ground up in `vector_db.py`, indexing **1,201 verified patient symptom records** across 24 medical conditions into a 25,000-dimensional TF-IDF vector embedding space (unigrams, bigrams, and trigrams with sublinear term-frequency normalization).
+### 2. 🧠 Groq AI MindEase Companion & Wellness Suite (`Joy`)
+* **Neural Conversational Engine:** Integrated with Groq's `llama-3.3-70b-versatile` API (`/mindease/chat`) to provide active listening, empathetic support, and mindfulness guidance when users feel stressed, anxious, or overwhelmed.
+* **100% Client-Side Privacy (`localStorage`):** Daily mood tracking, private journals, and custom box breathing (4-4-4-4) studio data are saved securely on the user's local device.
+
+### 3. 📚 Vector Database & RAG (Retrieval-Augmented Generation)
+* **High-Dimensional n-gram Indexing:** Built from the ground up in `vector_db.py`, indexing **1,230 verified patient symptom records** across 24 medical conditions into a 25,000-dimensional TF-IDF vector embedding space (unigrams, bigrams, and trigrams with sublinear term-frequency normalization).
 * **Real-Time Semantic Retrieval (k-NN):** When a patient describes symptoms, the query is transformed into a vector embedding and compared against the entire historical database using **Cosine Similarity** to retrieve the exact top nearest neighbor clinical cases.
 * **Quadratic Consensus Voting:** Computes diagnostic probability confidences by applying quadratic distance weighting ($\text{similarity}^2$) across the top 15 retrieved vector neighbors, eliminating AI hallucination and providing verifiable historical case citations.
 
-### 3. ⚡ eXplainable AI (XAI) Keyword Transparency
+### 4. ⚡ eXplainable AI (XAI) Keyword Transparency
 * **Clinical Term Detection:** Integrates a multilingual clinical NLP tokenizer that scans patient input for over 100 medical terms across English, Hindi (`बुखार`, `दर्द`, `चक्कर`, `उल्टी`, `कमजोरी`), and Hinglish (`sar me dard`, `thand`, `bukhar`, `pet`).
 * **Visual Pill Box:** Highlights detected symptom keywords as vibrant glowing cyan pills directly above the assessment results, allowing doctors and patients to see exactly which terms triggered the diagnostic decision.
 
-### 4. 🚨 Automated Clinical Severity & Emergency Triage
+### 5. 🚨 Automated Clinical Severity & Emergency Triage
 * **Dynamic Risk Grading:** Automatically evaluates condition risk tiers and displays high-visibility triage action banners:
   * 🔴 **HIGH SEVERITY (Emergency):** Advises immediate visit to an emergency room or urgent care clinic for critical conditions (e.g., Dengue, Malaria, Pneumonia, Typhoid, Hypertension).
   * 🟡 **MEDIUM SEVERITY (Urgent):** Recommends scheduling a specialized medical appointment within 24–48 hours (e.g., Asthma, Diabetes, Arthritis, Migraine, GERD).
   * 🟢 **LOW SEVERITY (Routine):** Recommends rest, hydration, and routine symptom monitoring (e.g., Common Cold, Allergies, Psoriasis, Acne).
 
-### 5. 🩺 Specialty Mapping & Referral Engine
+### 6. 🩺 Specialty Mapping & Referral Engine
 * **24 Clinical Specialties:** Every predicted condition is dynamically mapped to the appropriate medical specialist (e.g., *Pulmonologist*, *Neurologist*, *Cardiologist*, *Gastroenterologist*, *Rheumatologist*).
 * **Emergency Referral Protocol:** Features an integrated emergency helpline box displaying immediate medical rescue numbers (`📞 112 / 911 / 108 Ambulance`).
 
-### 6. 🛸 Ultra-Premium Cyberpunk Command HUD
-* **Glassmorphic UI:** Features frosted glass panels (`backdrop-filter: blur(25px)`), deep navy/cyberpunk gradient backgrounds (`#060913` to `#06182c`), and glowing cyan borders.
-* **Always-Visible Telemetry Dashboard:** Displays live system KPIs (Vector Index Count, Execution Architecture, Supported Languages, Diagnostic Engine Status) before and after analysis.
-* **Micro-Animations:** Smooth `@keyframes fadeInUp` entrance animations, shimmering progress bars, and pulsing neon online indicators.
+### 7. 🛸 Ultra-Premium Modern Cyberpunk Command HUD
+* **React 19 + TypeScript + Vite UI:** Built with sleek glassmorphic components (`backdrop-filter: blur(25px)`), deep navy/cyberpunk gradient backgrounds (`#060913` to `#06182c`), and glowing borders.
+* **Always-Visible Telemetry Dashboard:** Displays live system KPIs (Vector Index Count, Execution Architecture, Supported Languages, Diagnostic Engine Status).
 
 ---
 
@@ -47,18 +50,20 @@ An enterprise-grade, AI-powered multilingual healthcare triage system and diagno
 
 ```mermaid
 graph TD
-    A[🧑‍🦱 Patient / Doctor Symptom Intake] -->|English / Hindi / Hinglish| B(🛸 Streamlit Command HUD: frontend/app.py)
+    A[🧑‍🦱 Patient / Doctor Symptom Intake] -->|English / Hindi / Hinglish| B(🛸 React + TypeScript HUD: react-frontend/)
     
-    subgraph Standalone Client-Side Runtime
-        B -->|1. Raw Text| C[⚡ eXplainable AI XAI Tokenizer]
+    subgraph FastAPI Backend & AI Runtime :8000
+        B -->|POST /predict| C[⚡ eXplainable AI XAI Tokenizer]
         C -->|Extract Medical Keywords| D[🔍 Highlighted Clinical Pills]
         
-        B -->|2. Query Vector Transformation| E[📦 SymptomVectorDB: vector_db.py]
-        E -->|n-gram TF-IDF Vector Space| F[(📚 Indexed Vector DB: 1,201 Cases)]
+        B -->|POST /predict| E[📦 SymptomVectorDB: vector_db.py]
+        E -->|n-gram TF-IDF Vector Space| F[(📚 Indexed Vector DB: 1,230 Cases)]
         
         F -->|k-NN Cosine Similarity Search| G[🎯 Top 15 Nearest Historical Neighbors]
         G -->|Quadratic Distance Weighting| H[📊 Consensus Voting Probability Engine]
-    </ul subgraph>
+        
+        B -->|POST /mindease/chat| M[🤖 Groq Llama 3.3 70B AI Engine]
+    end
     
     H -->|Top 3 Ranked Diseases + Confidences| I[📋 Diagnostic Assessment Cards]
     G -->|Top 5 Semantic Match Quotes| J[📚 RAG Historical Retrieval Cards]
@@ -68,6 +73,7 @@ graph TD
     J --> L
     K --> L
     D --> L
+    M --> L
 ```
 
 ---
@@ -78,24 +84,27 @@ graph TD
 Multilingual-Healthcare-Triage-System/
 ├── 📄 README.md                        # Exhaustive project overview & architecture guide
 ├── 📄 PROJECT_OVERVIEW_AND_ARCHITECTURE.md # Standalone technical master documentation
-├── 📄 requirements.txt                 # Python dependencies (Streamlit, PyTorch, Scikit-Learn, FastAPI)
+├── 📄 requirements.txt                 # Python dependencies (FastAPI, PyTorch, Scikit-Learn, httpx)
+├── 📄 .env                             # Environment configuration (e.g., GROQ_API_KEY)
 ├── 🐍 vector_db.py                     # High-performance Vector DB & RAG embedding retrieval engine
 ├── 🐍 predict.py                       # Pretrained model loading & inference utilities
-├── 📂 frontend/
-│   └── 🐍 app.py                       # Ultra-premium Cyberpunk Standalone Streamlit HUD
+├── 📂 react-frontend/                  # Modern React + TypeScript + Vite UI Dashboard
+│   ├── 📄 package.json                 # Node dependencies and build scripts
+│   ├── 📄 vite.config.ts               # Vite dev proxy setup (/predict, /health, /mindease/chat)
+│   └── 📂 src/components/              # Component library (TriageView, MindEaseView, etc.)
 ├── 📂 backend/
 │   ├── 🐍 __init__.py                  # Package initialization
-│   └── 🐍 main.py                      # Optional FastAPI REST API backend server
+│   └── 🐍 main.py                      # FastAPI REST API backend server (Vector DB + Groq endpoints)
 ├── 📂 data/
 │   ├── 📂 processed/
-│   │   └── 📊 Symptom2Disease.csv      # 1,201 verified clinical patient symptom records
+│   │   └── 📊 Symptom2Disease.csv      # 1,230 verified clinical patient symptom records
 │   └── 📂 raw/                         # Raw unstructured medical datasets
 ├── 📂 models/
 │   ├── 📂 symptom_model/               # Saved TF-IDF + SVM classification pipelines & JSON mappings
 │   └── 🗄️ vector_db_cache.joblib       # Cached high-dimensional Vector DB index
 └── 📂 notebooks/
     ├── 📓 01_train_model.py            # Deep learning transformer training script
-    ├── 📓 02_train_tfidf_model.py      # TF-IDF + LinearSVC pipeline training script (95%+ accuracy)
+    ├── 📓 02_train_tfidf_model.py      # TF-IDF + LinearSVC pipeline training script
     └── 📓 03_predict.py                # Command-line prediction verification script
 ```
 
@@ -152,29 +161,25 @@ pip install -r requirements.txt
 
 ## 🚀 Running the Application
 
-### Method 1: Standalone Enterprise HUD (Recommended)
-Because we migrated the complete ML inference engine and Vector Database into the frontend, you only need to run a single command to launch the entire platform:
+### 1. Launch the FastAPI Backend API Server
+First, open your terminal/PowerShell inside `Multilingual-Healthcare-Triage-System/` and launch the API backend (which loads `SymptomVectorDB` and connects to Groq AI via `.env`):
 
 ```bash
-python -m streamlit run frontend/app.py --server.port 8501
+# Activate your virtual environment and launch FastAPI server
+.\venv\Scripts\python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-* **Access Dashboard:** Open your web browser to [http://localhost:8501](http://localhost:8501).
-* **Zero Latency Mode:** Enjoy instantaneous triage evaluations without needing any background API servers!
+* **Backend Health Check:** `GET http://127.0.0.1:8000/health`
+* **Swagger API Docs:** `http://127.0.0.1:8000/docs`
 
-### Method 2: Optional FastAPI Backend API Server
-If you wish to integrate the triage system into external mobile apps, hospital EHR systems, or microservices, you can launch the standalone FastAPI REST server:
+### 2. Launch the React + TypeScript Frontend
+Open a second terminal/PowerShell tab, navigate into `react-frontend/`, and launch the Vite development server:
 
 ```bash
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+cd react-frontend
+npm install
+npm run dev
 ```
-* **API Documentation (Swagger UI):** Visit [http://localhost:8000/docs](http://localhost:8000/docs).
-* **Health Check Endpoint:** `GET http://localhost:8000/health`
-* **Prediction Endpoint:** `POST http://localhost:8000/predict` with JSON payload:
-  ```json
-  {
-    "symptoms": "I have severe headache, high fever, shivering, and body aches."
-  }
-  ```
+* **Access Dashboard UI:** Open your web browser to [http://localhost:3000](http://localhost:3000). All API calls (`/predict`, `/health`, and `/mindease/chat`) are automatically proxied directly to your local FastAPI backend!
 
 ---
 

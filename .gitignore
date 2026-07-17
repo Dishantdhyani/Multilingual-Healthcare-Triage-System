@@ -20,3 +20,11 @@ models/checkpoints/
 
 # Other
 .DS_Store
+
+# Environment secrets
+.env
+
+# ChromaDB generated data
+data/processed/chroma_db/
+models/chroma_db/
+
