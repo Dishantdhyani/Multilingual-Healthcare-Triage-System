@@ -134,52 +134,137 @@ $$P(C_m) = \frac{\text{Score}(C_m)}{\sum_{j} \text{Score}(C_j)}$$
 ## 🛠️ Setup & Installation Guide
 
 ### 1. Prerequisites
-* **Python:** Version 3.9, 3.10, or 3.11 installed on Windows, macOS, or Linux.
-* **Git:** To clone the repository.
+| Tool | Version | Notes |
+|------|---------|-------|
+| **Python** | 3.9 / 3.10 / 3.11 | [Download Python](https://www.python.org/downloads/) |
+| **Node.js** | 18+ (LTS recommended) | [Download Node.js](https://nodejs.org/) — required for the React frontend |
+| **Git** | Latest | [Download Git](https://git-scm.com/downloads) |
+| **Groq API Key** | Free tier available | [Get API Key](https://console.groq.com/keys) — required for MindEase Companion |
 
-### 2. Installation Steps
-Open your terminal (or PowerShell on Windows) and execute the following commands:
+### 2. Clone the Repository
 
 ```bash
-# 1. Clone the repository (or navigate to project directory)
-cd "Multilingual Healthcare Triage System/Multilingual-Healthcare-Triage-System"
+git clone https://github.com/Dishantdhyani/Multilingual-Healthcare-Triage-System.git
+cd Multilingual-Healthcare-Triage-System
+```
 
-# 2. Create a Python Virtual Environment
+### 3. Create & Activate Python Virtual Environment
+
+**Windows (PowerShell):**
+```powershell
 python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
 
-# 3. Activate the Virtual Environment
-# On Windows PowerShell:
-.\venv\Scripts\activate
-# On macOS / Linux:
+**macOS / Linux:**
+```bash
+python3 -m venv venv
 source venv/bin/activate
+```
 
-# 4. Install Required Dependencies
+### 4. Install Python Dependencies
+
+```bash
 pip install -r requirements.txt
+```
+
+### 5. Configure Environment Variables
+Create a `.env` file in the project root with your Groq API key:
+
+```bash
+# .env
+GROQ_API_KEY=your_groq_api_key_here
+```
+> 💡 Get a free API key at [console.groq.com/keys](https://console.groq.com/keys)
+
+### 6. Install Frontend Dependencies
+
+```bash
+cd react-frontend
+npm install
+cd ..
 ```
 
 ---
 
 ## 🚀 Running the Application
 
-### 1. Launch the FastAPI Backend API Server
-First, open your terminal/PowerShell inside `Multilingual-Healthcare-Triage-System/` and launch the API backend (which loads `SymptomVectorDB` and connects to Groq AI via `.env`):
+> ⚠️ **You need two terminal windows** — one for the backend and one for the frontend.
 
-```bash
-# Activate your virtual environment and launch FastAPI server
-.\venv\Scripts\python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+### Terminal 1 — Launch the FastAPI Backend Server
+
+Navigate to the project root (`Multilingual-Healthcare-Triage-System/`) and run:
+
+**Windows (PowerShell):**
+```powershell
+# Activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# Start the FastAPI backend server on port 8000
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-* **Backend Health Check:** `GET http://127.0.0.1:8000/health`
-* **Swagger API Docs:** `http://127.0.0.1:8000/docs`
 
-### 2. Launch the React + TypeScript Frontend
-Open a second terminal/PowerShell tab, navigate into `react-frontend/`, and launch the Vite development server:
+**macOS / Linux:**
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Start the FastAPI backend server on port 8000
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Once running, verify the backend is healthy:
+
+| Endpoint | URL |
+|----------|-----|
+| 🟢 Health Check | [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health) |
+| 📖 Swagger API Docs | [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) |
+| 📖 ReDoc API Docs | [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc) |
+
+### Terminal 2 — Launch the React Frontend Dev Server
+
+Open a **new** terminal window, navigate to the `react-frontend/` directory, and run:
 
 ```bash
+cd react-frontend
+npm run dev
+```
+
+Once running, open your browser to:
+
+🌐 **[http://localhost:3000](http://localhost:3000)**
+
+> All API calls (`/predict`, `/health`, `/mindease/chat`) are automatically proxied to the FastAPI backend via Vite — no CORS configuration needed!
+
+---
+
+## 🏁 Quick Start (TL;DR)
+
+Run these commands in order to go from zero to running:
+
+```bash
+# Clone & enter project
+git clone https://github.com/Dishantdhyani/Multilingual-Healthcare-Triage-System.git
+cd Multilingual-Healthcare-Triage-System
+
+# Backend setup
+python -m venv venv
+.\venv\Scripts\Activate.ps1          # Windows — use 'source venv/bin/activate' on macOS/Linux
+pip install -r requirements.txt
+
+# Create .env with your Groq API key
+echo GROQ_API_KEY=your_groq_api_key_here > .env
+
+# Start backend (Terminal 1)
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+
+# Frontend setup & start (Terminal 2)
 cd react-frontend
 npm install
 npm run dev
 ```
-* **Access Dashboard UI:** Open your web browser to [http://localhost:3000](http://localhost:3000). All API calls (`/predict`, `/health`, and `/mindease/chat`) are automatically proxied directly to your local FastAPI backend!
+
+Then visit 👉 **[http://localhost:3000](http://localhost:3000)**
 
 ---
 
