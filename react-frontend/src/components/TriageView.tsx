@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { TriageResult } from '../types';
 import { VoiceInput } from './VoiceInput';
 import { DoctorReferralReport } from './DoctorReferralReport';
+import { NearbyHospitalFinder } from './NearbyHospitalFinder';
 
 interface TriageViewProps {
   symptomsInput: string;
@@ -28,6 +29,7 @@ export const TriageView: React.FC<TriageViewProps> = ({
 }) => {
   const [checkedSteps, setCheckedSteps] = useState<{ [key: number]: boolean }>({});
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showHospitalModal, setShowHospitalModal] = useState(false);
 
   const toggleStep = (index: number) => {
     setCheckedSteps((prev) => ({ ...prev, [index]: !prev[index] }));
@@ -343,7 +345,10 @@ export const TriageView: React.FC<TriageViewProps> = ({
                         </div>
                       </div>
                     </div>
-                    <button className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white transition-colors shadow-sm whitespace-nowrap">
+                    <button
+                      onClick={() => setShowHospitalModal(true)}
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white transition-colors shadow-sm whitespace-nowrap cursor-pointer"
+                    >
                       Find Nearby Hospital ➔
                     </button>
                   </div>
@@ -386,24 +391,36 @@ export const TriageView: React.FC<TriageViewProps> = ({
                   </p>
                   
                   <div className="space-y-3 pt-2">
-                    {result.similar_cases.slice(0, 3).map((sc, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 space-y-1.5 text-xs"
-                      >
-                        <div className="flex items-center justify-between font-bold">
-                          <span className="text-slate-900 dark:text-slate-200">
-                            Case #{sc.case_id}: <span className="text-teal-600 dark:text-teal-400">{sc.disease}</span>
-                          </span>
-                          <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-300 font-semibold">
-                            {(sc.similarity * 100).toFixed(1)}% Match
-                          </span>
-                        </div>
-                        <p className="text-slate-600 dark:text-slate-400 italic line-clamp-2">
-                          "{sc.symptom_text}"
-                        </p>
-                      </div>
-                    ))}
+                    {/* Deduplicate: show only one case per disease, exclude diseases already in predictions */}
+                    {(() => {
+                      const predictionDiseases = new Set(result.predictions.map(p => p.disease));
+                      const seenDiseases = new Set<string>();
+                      return result.similar_cases
+                        .filter(sc => {
+                          if (predictionDiseases.has(sc.disease) || seenDiseases.has(sc.disease)) return false;
+                          seenDiseases.add(sc.disease);
+                          return true;
+                        })
+                        .slice(0, 3)
+                        .map((sc, idx) => (
+                          <div
+                            key={idx}
+                            className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 space-y-1.5 text-xs"
+                          >
+                            <div className="flex items-center justify-between font-bold">
+                              <span className="text-slate-900 dark:text-slate-200">
+                                Case #{sc.case_id}: <span className="text-teal-600 dark:text-teal-400">{sc.disease}</span>
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-300 font-semibold">
+                                {(sc.similarity * 100).toFixed(1)}% Match
+                              </span>
+                            </div>
+                            <p className="text-slate-600 dark:text-slate-400 italic line-clamp-2">
+                              "{sc.symptom_text}"
+                            </p>
+                          </div>
+                        ));
+                    })()}
                   </div>
                 </div>
               )}
@@ -476,6 +493,15 @@ export const TriageView: React.FC<TriageViewProps> = ({
           result={result}
           symptomsInput={symptomsInput}
           onClose={() => setShowReportModal(false)}
+        />
+      )}
+
+      {/* Nearby Hospital Directory & Live GPS Locator Modal */}
+      {showHospitalModal && result && (
+        <NearbyHospitalFinder
+          specialty={result.predictions[0]?.specialty || 'General Physician / Internal Medicine'}
+          disease={result.predictions[0]?.disease || 'Symptom Triage'}
+          onClose={() => setShowHospitalModal(false)}
         />
       )}
 

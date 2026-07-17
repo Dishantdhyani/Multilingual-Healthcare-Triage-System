@@ -1,11 +1,20 @@
 import os
 import sys
 import re
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
+
+# Load environment variables from .env file if available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 
 # Add root directory to sys.path to import vector_db
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -71,57 +80,103 @@ HEALTH_KEYWORDS = [
 
 # Multilingual Symptom Dictionary Mapping for Vector DB Alignment
 HINDI_TO_ENGLISH_MAP = {
-    # Hindi Devanagari
-    "बुखार": "fever",
-    "दर्द": "pain",
-    "सिरदर्द": "headache",
-    "सिर दर्द": "headache",
-    "खांसी": "cough",
-    "जुकाम": "cold",
-    "चक्कर": "dizziness",
-    "उल्टी": "vomiting",
-    "जलन": "burning",
-    "ठंड": "chills",
-    "कमजोरी": "weakness",
-    "खुजली": "itching",
-    "चकत्ते": "rash",
-    "सांस": "breath",
-    "गले": "throat",
-    "बदन": "body ache",
-    "थकावट": "fatigue",
-    "कब्ज": "constipation",
-    "दस्त": "diarrhea",
-    "पेट": "stomach",
-    "चोट": "injury",
-    "घाव": "wound",
-    "खून": "bleeding",
-    "कट": "cut",
+    # --- Hindi Devanagari (General & Fever) ---
+    "बुखार": "fever", "तेज बुखार": "high fever", "हल्का बुखार": "mild fever",
+    "कंपकपी": "shivering chills", "ठंड": "chills", "कमजोरी": "weakness fatigue",
+    "थकान": "fatigue exhaustion", "थकावट": "fatigue", "पसीना": "sweating",
+    "रात में पसीना": "night sweats", "बेचैनी": "restlessness discomfort",
+    "घबराहट": "anxiety palpitations", "सूजन": "swelling",
     
-    # Hinglish / Romanized Hindi
-    "bukhar": "fever",
-    "dard": "pain",
-    "sar me dard": "headache",
-    "sar dard": "headache",
-    "khansi": "cough",
-    "jukam": "cold",
-    "chakkar": "dizziness",
-    "ulti": "vomiting",
-    "jalan": "burning",
-    "thand": "chills",
-    "kamzori": "weakness",
-    "khujli": "itching",
-    "saans": "breath",
-    "gale me": "throat",
-    "body ache": "body ache",
-    "body pain": "body pain",
-    "thakawat": "fatigue",
-    "kabz": "constipation",
-    "dast": "diarrhea",
-    "pet": "stomach",
-    "chot": "injury",
-    "ghav": "wound",
-    "khoon": "bleeding",
-    "kat": "cut"
+    # --- Hindi Devanagari (Cardiovascular & Respiratory) ---
+    "सिरदर्द": "headache", "सिर दर्द": "headache", "छाती में दर्द": "chest pain",
+    "सीने में दर्द": "chest pain", "सीने में जलन": "heartburn acidity",
+    "दिल की धड़कन": "heart palpitations", "सांस": "breath",
+    "सांस फूलना": "shortness of breath breathlessness",
+    "सांस लेने में तकलीफ": "difficulty breathing asthma",
+    "खांसी": "cough", "सूखी खांसी": "dry cough", "बलगम": "phlegm sputum",
+    "गले": "throat", "गले में खराश": "sore throat throat pain",
+    "जुकाम": "cold", "नाक बहना": "runny nose", "छींक": "sneezing allergy",
+    
+    # --- Hindi Devanagari (Gastrointestinal & Renal) ---
+    "दर्द": "pain", "उल्टी": "vomiting nausea", "मतली": "nausea",
+    "चक्कर": "dizziness vertigo", "चक्कर आना": "dizziness",
+    "पेट": "stomach", "पेट दर्द": "stomach ache abdominal pain",
+    "कब्ज": "constipation", "दस्त": "diarrhea loose motions",
+    "जलन": "burning", "एसिडिटी": "acidity indigestion gerd",
+    "भूख न लगना": "loss of appetite", "वजन घटना": "weight loss",
+    "पीलिया": "jaundice yellowing of eyes", "पेशाब": "urine",
+    "पेशाब में जलन": "burning urination uti", "पेशाब में खून": "blood in urine",
+    
+    # --- Hindi Devanagari (Musculoskeletal & Neurological) ---
+    "बदन": "body ache", "बदन दर्द": "body ache muscle pain",
+    "कमर दर्द": "back pain", "गर्दन में दर्द": "neck pain cervical",
+    "जोड़ों में दर्द": "joint pain arthritis", "मांसपेशियों में दर्द": "muscle pain",
+    "हाथ पैर में दर्द": "limb pain body ache", "सुन्न": "numbness",
+    "सुन्न होना": "numbness", "झुनझुनी": "tingling", "बेहोशी": "fainting unconsciousness",
+    
+    # --- Hindi Devanagari (Dermatological & Injuries) ---
+    "खुजली": "itching", "चकत्ते": "rash skin rash", "त्वचा पर दाने": "skin rash eruptions",
+    "दाने": "pimples bumps rash", "मुंहासे": "acne pimples",
+    "फोड़ा": "boil abscess pus", "दाद": "ringworm fungal infection",
+    "लाल धब्बे": "red spots skin spots", "एलर्जी": "allergy",
+    "चोट": "injury", "घाव": "wound", "खून": "bleeding blood", "कट": "cut",
+    
+    # --- Hinglish / Romanized Hindi (General & Fever) ---
+    "bukhar": "fever", "tezz bukhar": "high fever", "tez bukhar": "high fever",
+    "halka bukhar": "mild fever", "kampkapi": "shivering chills",
+    "shivering": "shivering chills", "thand": "chills",
+    "kamzori": "weakness fatigue", "kamzori mehsoos": "weakness fatigue",
+    "thakan": "fatigue exhaustion", "thakawat": "fatigue",
+    "paseena": "sweating", "raat me paseena": "night sweats",
+    "bechaini": "restlessness discomfort", "ghabrahat": "anxiety palpitations",
+    "soojan": "swelling", "sujan": "swelling", "swelling": "swelling",
+    
+    # --- Hinglish (Cardiovascular & Respiratory) ---
+    "sar me dard": "headache", "sar dard": "headache", "sardard": "headache",
+    "chaati me dard": "chest pain", "chati me dard": "chest pain",
+    "seene me dard": "chest pain", "chest me dard": "chest pain",
+    "seene me jalan": "heartburn acidity", "dil ki dhadkan": "heart palpitations",
+    "saans": "breath", "saans phoolna": "shortness of breath breathlessness",
+    "saans lene me takleef": "difficulty breathing asthma",
+    "khansi": "cough", "sookhi khansi": "dry cough", "sukhi khansi": "dry cough",
+    "balgam": "phlegm sputum", "phlegm": "phlegm",
+    "gale me": "throat", "gale me kharash": "sore throat throat pain",
+    "gale me dard": "sore throat", "jukam": "cold", "zukaam": "cold",
+    "naak behna": "runny nose", "runny nose": "runny nose",
+    "cheenk": "sneezing allergy", "sneezing": "sneezing",
+    
+    # --- Hinglish (Gastrointestinal & Renal) ---
+    "dard": "pain", "ulti": "vomiting nausea", "vomit": "vomiting",
+    "matli": "nausea", "chakkar": "dizziness vertigo",
+    "chakkar aana": "dizziness", "sar ghoomna": "dizziness vertigo",
+    "pet": "stomach", "pet me dard": "stomach ache abdominal pain",
+    "pet dard": "stomach ache", "pet kharab": "stomach infection diarrhea",
+    "kabz": "constipation", "dast": "diarrhea loose motions",
+    "loose motion": "diarrhea loose motions", "loose motions": "diarrhea",
+    "jalan": "burning", "acidity": "acidity indigestion gerd",
+    "gas": "indigestion acidity", "bhookh nahi lag rahi": "loss of appetite",
+    "bhook na lagna": "loss of appetite", "weight loss": "weight loss",
+    "vajan ghatna": "weight loss", "peeliya": "jaundice yellowing of eyes",
+    "jaundice": "jaundice yellowing of eyes", "peshab": "urine",
+    "peshab me jalan": "burning urination uti", "peshab me khoon": "blood in urine",
+    
+    # --- Hinglish (Musculoskeletal & Neurological) ---
+    "badan me dard": "body ache muscle pain", "body ache": "body ache",
+    "body pain": "body pain", "kamar dard": "back pain",
+    "kamar me dard": "back pain", "gardan me dard": "neck pain cervical",
+    "jodo me dard": "joint pain arthritis", "joint pain": "joint pain arthritis",
+    "muscles me dard": "muscle pain", "haath pair me dard": "limb pain body ache",
+    "sunn hona": "numbness", "sunn": "numbness", "jhunjhuni": "tingling",
+    "behosh": "fainting unconsciousness", "behoshi": "fainting unconsciousness",
+    
+    # --- Hinglish (Dermatological & Injuries) ---
+    "khujli": "itching", "itching": "itching", "chakatte": "rash skin rash",
+    "skin par daane": "skin rash eruptions", "daane": "pimples bumps rash",
+    "pimples": "acne pimples", "phoda": "boil abscess pus",
+    "daad": "ringworm fungal infection", "fungal infection": "fungal infection",
+    "laal dhabbe": "red spots skin spots", "red spots": "red spots",
+    "allergy": "allergy", "rashes": "skin rash",
+    "chot": "injury", "ghav": "wound", "khoon": "bleeding blood", "kat": "cut"
 }
 
 def translate_query(text: str) -> str:
@@ -198,7 +253,7 @@ def predict_symptoms(request: SymptomRequest):
     enriched_text = translate_query(text)
     
     # Run Vector DB prediction
-    predictions_raw, retrieved_cases = vdb.predict_consensus(enriched_text, top_k=15)
+    predictions_raw, retrieved_cases = vdb.predict_consensus(enriched_text, top_k=25)
     
     if not predictions_raw or predictions_raw[0]["confidence"] < 0.05:
         return {"predictions": [], "similar_cases": [], "detected_symptoms": []}
@@ -224,18 +279,118 @@ def predict_symptoms(request: SymptomRequest):
                 detected.add(w)
                 break
     
-    # Similar cases (top 5)
+    # Similar cases (top 5, excluding diseases already in predictions to avoid duplicates)
+    predicted_diseases = {pred["disease"] for pred in predictions}
     similar_cases = []
-    for case in retrieved_cases[:5]:
+    seen_diseases_in_cases = set()
+    for case in retrieved_cases:
+        dis = case["disease"]
+        # Skip if this disease is already shown in predictions or already added to similar_cases
+        if dis in predicted_diseases or dis in seen_diseases_in_cases:
+            continue
+        seen_diseases_in_cases.add(dis)
         similar_cases.append({
             "case_id": case["case_id"],
-            "disease": case["disease"],
+            "disease": dis,
             "symptom_text": case["matched_symptom"],
             "similarity": case["similarity"]
         })
+        if len(similar_cases) >= 5:
+            break
     
     return {
         "predictions": predictions,
         "similar_cases": similar_cases,
         "detected_symptoms": sorted(list(detected))
     }
+
+class ChatMessageModel(BaseModel):
+    sender: str
+    text: str
+    timestamp: Optional[str] = None
+
+class MindEaseChatRequest(BaseModel):
+    message: str
+    history: Optional[List[ChatMessageModel]] = []
+    api_key: Optional[str] = None
+
+@app.post("/mindease/chat")
+async def mindease_chat(request: MindEaseChatRequest):
+    # Determine which API key to use (request or env)
+    api_key = (request.api_key or "").strip() or os.getenv("GROQ_API_KEY", "").strip()
+    
+    # If no key provided anywhere, return helpful instructions
+    if not api_key:
+        return {
+            "reply": "I'm right here with you! To unlock my live neural **Groq AI (`llama-3.3-70b-versatile`)** conversational engine, please add your Groq API Key (`GROQ_API_KEY=gsk_...`) to a `.env` file in the project directory, or paste your key directly into the **Groq API Key** setting bar right above our chat box.",
+            "status": "missing_key"
+        }
+    
+    # Construct system prompt and messages array for Groq
+    system_prompt = (
+        "You are 'Joy', a compassionate, empathetic, and warm AI companion inside the 'MindEase Companion & Wellness Suite' of the Multilingual Healthcare Triage System. "
+        "Your role is to provide emotional support, active listening, mindfulness advice, and gentle guidance when users feel stressed, anxious, lonely, or overwhelmed. "
+        "\n\n"
+        "OUTPUT FORMAT & FORMATTING RULES:\n"
+        "1. Respond directly with a rich, beautifully formatted, warm, and structured **Markdown text message** (no JSON wrapper).\n"
+        "2. Use **bold emphasis** (`**Key Phrase**`) for soothing affirmations, important tips, and section headers.\n"
+        "3. Use clean **bullet points** or numbered lists whenever sharing multi-step grounding exercises (like 4-4-4-4 box breathing), coping strategies, or reflection questions so your advice is scannable and easy to follow.\n"
+        "4. Structure your response into 2-3 short, soothing paragraphs to make it feel natural, human-like, and deeply supportive.\n"
+        "5. Important: You are NOT a doctor and cannot diagnose medical conditions or prescribe medications. If someone expresses severe mental distress or self-harm, "
+        "gently and urgently advise them to contact crisis support or emergency services immediately.\n"
+        "CRITICAL LANGUAGE & DIALECT RULE:\n"
+        "1. Base your language selection STRICTLY and SOLELY on the user's NEWEST/LATEST message right now. Do NOT be influenced by what language was used in previous messages in the conversation history.\n"
+        "2. If the user's newest message is in pure English (e.g., 'i am not feeling well', 'I feel sad today', 'what can I do to calm down?'), you MUST write your reply in **pure English ONLY**. NEVER reply in Hindi or Hinglish when the user's latest message is in English.\n"
+        "3. If the user's newest message is in Hinglish (Hindi words written using English/Latin script, such as 'mujhe bahut stress ho raha hai', 'sar me dard hai', 'zindagi me tension hai'), you MUST write your reply in **Hinglish using English (Latin) script ONLY** (e.g., 'Mujhe samajh aa raha hai ki aapko bahut stress ho raha hai. **Please ek gehra saans lijiye**...'). NEVER use Devanagari (Hindi) script when the user types in English script.\n"
+        "4. If the user's newest message is in Devanagari Hindi script (e.g., 'मुझे अच्छा नहीं लग रहा'), write your reply in Devanagari Hindi script.\n"
+    )
+    
+    messages = [{"role": "system", "content": system_prompt}]
+    
+    # Add conversation history (up to last 10 messages)
+    if request.history:
+        for msg in request.history[-10:]:
+            role = "assistant" if msg.sender == "bot" else "user"
+            messages.append({"role": role, "content": msg.text})
+            
+    messages.append({"role": "user", "content": request.message})
+    
+    # Call Groq API endpoint directly via httpx
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 800
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(url, headers=headers, json=payload)
+            if resp.status_code == 200:
+                data = resp.json()
+                raw_content = data["choices"][0]["message"]["content"]
+                # In case model still outputs a JSON object wrapper, parse safely or return direct markdown
+                try:
+                    import json
+                    parsed_json = json.loads(raw_content)
+                    reply = parsed_json.get("message", raw_content)
+                    return {"reply": reply, "status": "success"}
+                except Exception:
+                    return {"reply": raw_content, "status": "success"}
+            else:
+                err_text = resp.text
+                return {
+                    "reply": f"I couldn't reach the Groq AI service right now (HTTP {resp.status_code}: {err_text}). Please verify that your `GROQ_API_KEY` is valid.",
+                    "status": "error"
+                }
+    except Exception as e:
+        return {
+            "reply": f"I encountered a network or connection error while trying to reach Groq AI: {str(e)}",
+            "status": "error"
+        }
+
