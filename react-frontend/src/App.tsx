@@ -7,6 +7,7 @@ import { TriageView } from './components/TriageView';
 import { MindEaseView } from './components/MindEaseView';
 import { HowItWorksView } from './components/HowItWorksView';
 import { EmergencyView } from './components/EmergencyView';
+import { buildApiUrl } from './lib/api';
 
 export default function App() {
   // Navigation & Theme State
@@ -81,8 +82,7 @@ export default function App() {
     setResult(null);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${apiUrl}/predict`, {
+      const response = await fetch(buildApiUrl('/predict'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

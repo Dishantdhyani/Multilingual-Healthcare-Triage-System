@@ -185,6 +185,16 @@ npm install
 cd ..
 ```
 
+### 7. Configure Frontend API Base URL for Production
+
+The React app reads `VITE_API_URL` at build time. Set it to the deployed FastAPI origin when you build for production, for example:
+
+```bash
+VITE_API_URL=https://your-backend.example.com
+```
+
+If `VITE_API_URL` is not set, the frontend falls back to same-origin requests, which is fine for local Vite proxy-based development.
+
 ---
 
 ## 🚀 Running the Application

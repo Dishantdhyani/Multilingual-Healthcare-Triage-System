@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { JournalEntry, ChatMessage, CommunityPost } from '../types';
 import { VoiceInput } from './VoiceInput';
+import { buildApiUrl } from '../lib/api';
 
 export const MindEaseView: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'mood' | 'chat' | 'breathing' | 'journal' | 'community'>('chat');
@@ -120,8 +121,7 @@ export const MindEaseView: React.FC = () => {
     setIsChatLoading(true);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${apiUrl}/mindease/chat`, {
+      const response = await fetch(buildApiUrl('/mindease/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
