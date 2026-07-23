@@ -120,7 +120,8 @@ export const MindEaseView: React.FC = () => {
     setIsChatLoading(true);
 
     try {
-      const response = await fetch('/mindease/chat', {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${apiUrl}/mindease/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
