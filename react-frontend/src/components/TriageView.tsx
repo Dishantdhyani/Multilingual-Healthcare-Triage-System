@@ -391,36 +391,25 @@ export const TriageView: React.FC<TriageViewProps> = ({
                   </p>
                   
                   <div className="space-y-3 pt-2">
-                    {/* Deduplicate: show only one case per disease, exclude diseases already in predictions */}
-                    {(() => {
-                      const predictionDiseases = new Set(result.predictions.map(p => p.disease));
-                      const seenDiseases = new Set<string>();
-                      return result.similar_cases
-                        .filter(sc => {
-                          if (predictionDiseases.has(sc.disease) || seenDiseases.has(sc.disease)) return false;
-                          seenDiseases.add(sc.disease);
-                          return true;
-                        })
-                        .slice(0, 3)
-                        .map((sc, idx) => (
-                          <div
-                            key={idx}
-                            className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 space-y-1.5 text-xs"
-                          >
-                            <div className="flex items-center justify-between font-bold">
-                              <span className="text-slate-900 dark:text-slate-200">
-                                Case #{sc.case_id}: <span className="text-teal-600 dark:text-teal-400">{sc.disease}</span>
-                              </span>
-                              <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-300 font-semibold">
-                                {(sc.similarity * 100).toFixed(1)}% Match
-                              </span>
-                            </div>
-                            <p className="text-slate-600 dark:text-slate-400 italic line-clamp-2">
-                              "{sc.symptom_text}"
-                            </p>
-                          </div>
-                        ));
-                    })()}
+                    {/* Show top 3 historical cases (evidence) */}
+                    {result.similar_cases.slice(0, 3).map((sc, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 space-y-1.5 text-xs"
+                      >
+                        <div className="flex items-center justify-between font-bold">
+                          <span className="text-slate-900 dark:text-slate-200">
+                            Case #{sc.case_id}: <span className="text-teal-600 dark:text-teal-400">{sc.disease}</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-300 font-semibold">
+                            {(sc.similarity * 100).toFixed(1)}% Match
+                          </span>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-400 italic line-clamp-2">
+                          "{sc.symptom_text}"
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

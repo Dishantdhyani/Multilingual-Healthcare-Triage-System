@@ -279,24 +279,15 @@ def predict_symptoms(request: SymptomRequest):
                 detected.add(w)
                 break
     
-    # Similar cases (top 5, excluding diseases already in predictions to avoid duplicates)
-    predicted_diseases = {pred["disease"] for pred in predictions}
+    # Similar cases (top 5)
     similar_cases = []
-    seen_diseases_in_cases = set()
-    for case in retrieved_cases:
-        dis = case["disease"]
-        # Skip if this disease is already shown in predictions or already added to similar_cases
-        if dis in predicted_diseases or dis in seen_diseases_in_cases:
-            continue
-        seen_diseases_in_cases.add(dis)
+    for case in retrieved_cases[:5]:
         similar_cases.append({
             "case_id": case["case_id"],
-            "disease": dis,
+            "disease": case["disease"],
             "symptom_text": case["matched_symptom"],
             "similarity": case["similarity"]
         })
-        if len(similar_cases) >= 5:
-            break
     
     return {
         "predictions": predictions,
