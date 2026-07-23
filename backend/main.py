@@ -1,15 +1,12 @@
 import os
 import sys
 import re
-import json
 import httpx
-import joblib
-import numpy as np
-import pandas as pd
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
+from contextlib import asynccontextmanager
 
 # Load environment variables from .env file if available
 try:
@@ -23,6 +20,8 @@ except ImportError:
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.append(root_dir)
+
+from vector_db import SymptomVectorDB
 
 # Clinical Severity Mapping
 SEVERITY = {
@@ -193,79 +192,24 @@ def translate_query(text: str) -> str:
         return text + " " + " ".join(unique_matches)
     return text
 
-MODEL_DIR = os.path.join(root_dir, "models", "symptom_model")
-DATA_PATH = os.path.join(root_dir, "data", "processed", "Symptom2Disease.csv")
+vdb = None
 
-runtime_assets: Optional[Dict[str, Any]] = None
-
-
-def _get_pipeline_step(pipeline, preferred_names: List[str]):
-    if hasattr(pipeline, "named_steps"):
-        for name in preferred_names:
-            if name in pipeline.named_steps:
-                return pipeline.named_steps[name]
-        return next(iter(pipeline.named_steps.values()))
-    return pipeline
-
-
-def _softmax(values: np.ndarray) -> np.ndarray:
-    shifted = values - np.max(values)
-    exponentiated = np.exp(shifted)
-    return exponentiated / exponentiated.sum()
-
-
-def get_runtime_assets() -> Dict[str, Any]:
-    global runtime_assets
-    if runtime_assets is not None:
-        return runtime_assets
-
-    model_path = os.path.join(MODEL_DIR, "tfidf_svm_pipeline.joblib")
-    label_map_path = os.path.join(MODEL_DIR, "label_mapping.json")
-
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Model not found at {model_path}")
-    if not os.path.exists(label_map_path):
-        raise FileNotFoundError(f"Label mapping not found at {label_map_path}")
-    if not os.path.exists(DATA_PATH):
-        raise FileNotFoundError(f"Dataset not found at {DATA_PATH}")
-
-    pipeline = joblib.load(model_path)
-    with open(label_map_path, "r", encoding="utf-8") as handle:
-        label_mapping = json.load(handle)
-
-    dataset = pd.read_csv(DATA_PATH)
-    if "Unnamed: 0" in dataset.columns:
-        dataset = dataset.drop(columns=["Unnamed: 0"])
-
-    text_column = next((column for column in ("text", "symptom_text", "symptoms") if column in dataset.columns), None)
-    label_column = next((column for column in ("label", "disease", "target") if column in dataset.columns), None)
-    if text_column is None or label_column is None:
-        raise ValueError("Dataset must contain text and label columns")
-
-    vectorizer = _get_pipeline_step(pipeline, ["tfidf", "vectorizer"])
-    classifier = _get_pipeline_step(pipeline, ["clf", "classifier"])
-
-    corpus_texts = dataset[text_column].fillna("").astype(str).tolist()
-    corpus_matrix = vectorizer.transform(corpus_texts)
-
-    runtime_assets = {
-        "pipeline": pipeline,
-        "vectorizer": vectorizer,
-        "classifier": classifier,
-        "label_mapping": label_mapping,
-        "dataset": dataset,
-        "text_column": text_column,
-        "label_column": label_column,
-        "corpus_matrix": corpus_matrix,
-        "corpus_texts": corpus_texts,
-    }
-    print(f"Loaded lightweight TF-IDF symptom model with {len(dataset)} records.")
-    return runtime_assets
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global vdb
+    data_path = os.path.join(root_dir, "data", "processed", "Symptom2Disease.csv")
+    cache_path = os.path.join(root_dir, "models", "vector_db_cache.joblib")
+    vdb = SymptomVectorDB(data_path=data_path, cache_path=cache_path)
+    vdb.init_db()
+    print("Vector DB engine loaded and ready.")
+    yield
+    print("Shutting down Healthcare Triage API...")
 
 app = FastAPI(
     title="Multilingual Healthcare Triage API",
     description="API for evaluating symptoms using Vector DB semantic retrieval.",
     version="2.0.0",
+    lifespan=lifespan
 )
 
 app.add_middleware(
@@ -292,12 +236,10 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    assets_loaded = runtime_assets is not None
     return {
         "status": "ok",
-        "engine": "TF-IDF-SVM",
-        "model_loaded": assets_loaded,
-        "records_indexed": len(runtime_assets["dataset"]) if assets_loaded else 0
+        "engine": "VectorDB-RAG",
+        "records_indexed": len(vdb.metadata) if vdb and vdb.metadata else 0
     }
 
 @app.post("/predict")
@@ -307,48 +249,28 @@ def predict_symptoms(request: SymptomRequest):
     if not text:
         return {"predictions": [], "similar_cases": [], "detected_symptoms": []}
     
-    assets = get_runtime_assets()
+    # Translate Hindi/Hinglish components to support vector similarity retrieval
     enriched_text = translate_query(text)
-    query_vector = assets["vectorizer"].transform([enriched_text])
 
-    classifier = assets["classifier"]
-    label_mapping = assets["label_mapping"]
-    class_labels = [label_mapping.get(str(label), str(label)) for label in getattr(classifier, "classes_", [])]
+    # Run Vector DB prediction
+    predictions_raw, retrieved_cases = vdb.predict_consensus(enriched_text, top_k=25)
 
-    if hasattr(classifier, "predict_proba"):
-        score_vector = classifier.predict_proba(query_vector)[0]
-    else:
-        raw_scores = classifier.decision_function(query_vector)
-        raw_scores = raw_scores[0] if getattr(raw_scores, "ndim", 1) > 1 else raw_scores
-        score_vector = _softmax(np.asarray(raw_scores, dtype=float))
-
-    if score_vector.size == 0:
+    if not predictions_raw or predictions_raw[0]["confidence"] < 0.05:
         return {"predictions": [], "similar_cases": [], "detected_symptoms": []}
 
-    top_prediction_indices = np.argsort(score_vector)[::-1][:3]
+    # Enrich predictions with severity and specialty
     predictions = []
-    for index in top_prediction_indices:
-        disease = class_labels[index] if index < len(class_labels) else str(index)
+    for pred in predictions_raw:
+        disease = pred["disease"]
         predictions.append({
             "disease": disease,
-            "confidence": float(score_vector[index]),
-            "similarity": float(score_vector[index]),
+            "confidence": pred["confidence"],
+            "similarity": pred["top_match_similarity"],
             "severity": SEVERITY.get(disease, "unknown"),
             "specialty": SPECIALTIES.get(disease, "General Physician / Family Doctor")
         })
     
-    similarities = (assets["corpus_matrix"] @ query_vector.T).toarray().ravel()
-    top_case_indices = np.argsort(similarities)[::-1][:5]
-    similar_cases = []
-    for case_index in top_case_indices:
-        case_row = assets["dataset"].iloc[case_index]
-        similar_cases.append({
-            "case_id": int(case_index),
-            "disease": str(case_row[assets["label_column"]]),
-            "symptom_text": str(case_row[assets["text_column"]]),
-            "similarity": float(similarities[case_index])
-        })
-
+    # Extract detected symptom keywords
     words = re.findall(r'\w+', text.lower(), re.UNICODE)
     detected = set()
     for w in words:
@@ -356,6 +278,16 @@ def predict_symptoms(request: SymptomRequest):
             if re.search(kw, w, re.IGNORECASE | re.UNICODE):
                 detected.add(w)
                 break
+
+    # Similar cases (top 5)
+    similar_cases = []
+    for case in retrieved_cases[:5]:
+        similar_cases.append({
+            "case_id": case["case_id"],
+            "disease": case["disease"],
+            "symptom_text": case["matched_symptom"],
+            "similarity": case["similarity"]
+        })
     
     return {
         "predictions": predictions,
